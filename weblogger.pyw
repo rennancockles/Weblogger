@@ -8,6 +8,9 @@ import os
 import re
 import signal
 import subprocess
+import win32event
+import win32api
+import winerror
 
 
 class Weblogger(object):
@@ -137,7 +140,7 @@ class Weblogger(object):
             self.command = ''
         elif length == len(KILL):
             if self.LOGGING:
-                print('Matando processo')
+                print('Killing Weblogger')
             self.kill()
 
     def send_mail(self, text):
@@ -256,6 +259,13 @@ if __name__ == '__main__':
     signal.signal(signal.SIGABRT, wl.kill)
     signal.signal(signal.SIGFPE, wl.kill)
     signal.signal(signal.SIGSEGV, wl.kill)
+
+    mutex = win32event.CreateMutex(None, 1, 'weblogger_mutex')
+    if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+        mutex = None
+        if wl.LOGGING:
+            print "Multiple instance not allowed"
+        exit(0)
 
     while True:
         if wl.is_browser_open(update_titles=False) and not wl.is_thread_running:
