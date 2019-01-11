@@ -10,9 +10,19 @@ When Weblogger stops, an email is sent with the current log and the log file is 
 Set the GMAIL_DATA with an username and password from a gmail account and the 'email_to' parameter
 with an email account for the log to be sent.
 
+If you have PyInstaller, run make.bat to generate a .exe file.
+
 ## Usage
 
-Usage: python weblogger.pyw
+```commandline
+python weblogger.pyw
+```
+
+or
+
+```commandline
+weblogger.exe
+```
 
 ## Commands
 
