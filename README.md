@@ -14,7 +14,17 @@ with an email account for the log to be sent.
 
 Usage: python weblogger.pyw
 
-## Stop Weblogger
+## Commands
+
+* ### Stop Weblogger 
 
 Open a browser and type 'webloggerkill' (without quotation marks)
+
+* ### Add Weblogger To Startup
+
+Open a browser and type 'webloggerstartup' (without quotation marks)
+
+* ### Remove Weblogger From Startup
+
+Open a browser and type 'webloggernostartup' (without quotation marks)
 
