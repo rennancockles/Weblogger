@@ -7,5 +7,5 @@ python -m PyInstaller -wF \
     -i "./weblogger.ico" \
     weblogger.pyw
 
-rm -rf Dist/linux/build
-rm -rf Dist/linux/spec
+rm -rf dist/linux/build
+rm -rf dist/linux/spec
