@@ -326,7 +326,7 @@ def create_lock():
             mutex = None
             already_running = True
     else:
-        _lock = open(os.path.realpath(__file__), 'r')
+        _lock = open(os.path.realpath(sys.argv[0]), 'r')
         try:
             fcntl.flock(_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
